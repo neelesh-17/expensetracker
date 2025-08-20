@@ -1,42 +1,447 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Expense Tracker</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Expense Tracker – Single File</title>
+  <style>
+    :root {
+      --bg: #0f172a;          /* slate-900 */
+      --panel: #111827;       /* gray-900 */
+      --panel-2: #0b1220;    
+      --text: #e5e7eb;        /* gray-200 */
+      --muted: #9ca3af;       /* gray-400 */
+      --primary: #6366f1;     /* indigo-500 */
+      --primary-2: #818cf8;   /* indigo-400 */
+      --danger: #ef4444;      /* red-500 */
+      --ok: #10b981;          /* emerald-500 */
+      --warn: #f59e0b;        /* amber-500 */
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 10% -10%, #1e293b 0, transparent 70%),
+                  radial-gradient(1200px 800px at 110% 10%, #1f2937 0, transparent 60%),
+                  var(--bg);
+      color: var(--text);
+    }
+    .container { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+    .app-title { font-size: clamp(20px, 4vw, 28px); font-weight: 800; letter-spacing: .3px; display:flex; align-items:center; gap:10px; }
+    .badge { font-size: 12px; padding: 3px 8px; border: 1px solid #303a53; border-radius: 999px; color: var(--primary-2); background: #0b1020; }
+
+    .grid {
+      display:grid; gap:16px; grid-template-columns: 1fr;
+    }
+    @media (min-width: 900px){ .grid { grid-template-columns: 380px 1fr; } }
+
+    .card { background: linear-gradient(180deg, var(--panel) 0, var(--panel-2)); border: 1px solid #192038; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .card h2 { margin: 0 0 10px; font-size: 16px; letter-spacing: .3px; color: #c7d2fe; }
+    .card-inner { padding: 16px; }
+
+    label { display:block; font-size: 12px; color: var(--muted); margin: 8px 0 6px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #26314d; background: #0b1020; color: var(--text);
+      outline: none; transition: border .15s ease;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #4452a3; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+    .actions { display:flex; gap:8px; flex-wrap: wrap; margin-top: 14px; }
+    button, .btn {
+      display:inline-flex; align-items:center; gap:8px; padding: 10px 14px; border-radius: 10px; border: 1px solid #2b3558; background:#141b31; color: var(--text);
+      cursor:pointer; transition: transform .02s ease, background .2s ease, border .2s ease; font-weight: 600; letter-spacing:.2px;
+    }
+    button:hover { background:#1a2342; }
+    button:active { transform: translateY(1px); }
+    .btn-primary { background: linear-gradient(180deg, #3f46c8, #373ec0); border-color:#5258da; }
+    .btn-primary:hover { background: linear-gradient(180deg, #4e56e5, #4249cf); }
+    .btn-danger { background: linear-gradient(180deg, #b52e2e, #962525); border-color:#d64545; }
+    .btn-ghost { background: transparent; border-color:#2b3558; }
+
+    .stats { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:6px; }
+    .stat { padding: 12px; border-radius: 12px; border: 1px solid #223057; background:#0a0f1f; }
+    .stat .label { font-size: 12px; color: var(--muted); }
+    .stat .value { font-size: 18px; font-weight: 800; margin-top: 2px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align:left; font-size: 12px; color: var(--muted); padding: 10px; border-bottom: 1px solid #1f2947; position: sticky; top: 0; background: #0b1020; }
+    tbody td { padding: 10px; border-bottom: 1px solid #151c34; font-size: 14px; }
+    tbody tr:hover { background: rgba(99,102,241,.06); }
+    .t-actions { display:flex; gap:8px; }
+    .empty { text-align:center; color: var(--muted); padding: 24px; }
+
+    .pill { padding: 2px 8px; border-radius: 999px; border: 1px solid #2b3558; font-size: 12px; color:#c7d2fe; background:#0b1020; }
+    .footer { color: var(--muted); font-size: 12px; margin-top: 16px; text-align:center; }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h2>💸 Expense Tracker</h2>
-    
-    <div class="balance-card">
-      <h3>Your Balance</h3>
-      <h1 id="balance">$0.00</h1>
+    <div class="app-title">💸 Expense Tracker <span class="badge">Single‑file • localStorage</span></div>
+
+    <div class="grid" role="region" aria-label="Expense tracker panels">
+      <!-- Left: Form & Filters -->
+      <section class="card" aria-labelledby="form-title">
+        <div class="card-inner">
+          <h2 id="form-title">Add / Edit Expense</h2>
+          <form id="expense-form">
+            <input type="hidden" id="expense-id" />
+            <label for="amount">Amount</label>
+            <input id="amount" type="number" step="0.01" min="0" placeholder="e.g. 15.50" required />
+
+            <div class="row">
+              <div>
+                <label for="category">Category</label>
+                <input id="category" list="category-list" placeholder="e.g. Food" required />
+                <datalist id="category-list"></datalist>
+              </div>
+              <div>
+                <label for="date">Date</label>
+                <input id="date" type="date" required />
+              </div>
+            </div>
+
+            <label for="description">Description (optional)</label>
+            <input id="description" type="text" maxlength="120" placeholder="e.g. Lunch with team" />
+
+            <div class="actions">
+              <button type="submit" class="btn-primary" id="save-btn">Save Expense</button>
+              <button type="reset" class="btn-ghost" id="reset-btn">Reset</button>
+            </div>
+          </form>
+
+          <hr style="border:none; border-top:1px solid #1f2947; margin:18px 0;">
+
+          <h2>Filters</h2>
+          <div class="row-3">
+            <div>
+              <label for="filter-category">Category</label>
+              <select id="filter-category"></select>
+            </div>
+            <div>
+              <label for="from">From</label>
+              <input id="from" type="date" />
+            </div>
+            <div>
+              <label for="to">To</label>
+              <input id="to" type="date" />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="apply-filters" class="btn">Apply Filters</button>
+            <button id="clear-filters" class="btn-ghost">Clear</button>
+            <button id="export-csv" class="btn">Export CSV</button>
+            <label class="btn-ghost" style="position:relative; overflow:hidden;">
+              Import JSON
+              <input id="import-json" type="file" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer;" />
+            </label>
+          </div>
+
+          <div class="stats" aria-live="polite">
+            <div class="stat"><div class="label">This Period</div><div id="sum-period" class="value">₹0.00</div></div>
+            <div class="stat"><div class="label">All‑time Total</div><div id="sum-all" class="value">₹0.00</div></div>
+            <div class="stat"><div class="label">Entries</div><div id="count" class="value">0</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Table & Summary -->
+      <section class="card" aria-labelledby="table-title">
+        <div class="card-inner" style="padding-bottom:0;">
+          <h2 id="table-title">Expenses</h2>
+          <div style="max-height: 420px; overflow:auto; border:1px solid #171f39; border-radius: 12px;">
+            <table aria-describedby="table-title">
+              <thead>
+                <tr>
+                  <th style="width:120px">Date</th>
+                  <th style="width:110px">Amount</th>
+                  <th style="width:160px">Category</th>
+                  <th>Description</th>
+                  <th style="width:150px">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <tr><td colspan="5" class="empty">No expenses yet. Add your first one on the left ➡️</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card-inner">
+            <h2>Monthly Summary</h2>
+            <div id="monthly" class="stats" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));"></div>
+            <div class="footer">Data is stored locally in your browser (localStorage). Export regularly for backups.</div>
+          </div>
+        </div>
+      </section>
     </div>
-
-    <div class="summary">
-      <div>
-        <h4>Income</h4>
-        <p id="income" class="money plus">+$0.00</p>
-      </div>
-      <div>
-        <h4>Expense</h4>
-        <p id="expense" class="money minus">-$0.00</p>
-      </div>
-    </div>
-
-    <h3>History</h3>
-    <ul id="list" class="list"></ul>
-
-    <h3>Add New Transaction</h3>
-    <form id="form">
-      <input type="text" id="text" placeholder="Enter description..." required />
-      <input type="number" id="amount" placeholder="Enter amount..." required />
-      <button class="btn">Add Transaction</button>
-    </form>
   </div>
 
-  <script src="script.js"></script>
+  <template id="row-template">
+    <tr>
+      <td data-key="date"></td>
+      <td data-key="amount"></td>
+      <td data-key="category"></td>
+      <td data-key="description"></td>
+      <td>
+        <div class="t-actions">
+          <button class="btn-ghost" data-action="edit">Edit</button>
+          <button class="btn-danger" data-action="delete">Delete</button>
+        </div>
+      </td>
+    </tr>
+  </template>
+
+  <script>
+    /* ===== Utility ===== */
+    const $ = (s, r=document) => r.querySelector(s);
+    const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+    const fmt = new Intl.NumberFormat(undefined, { style:'currency', currency: 'INR' });
+
+    const storeKey = 'expense-tracker:v1';
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    const todayISO = () => new Date().toISOString().slice(0,10);
+
+    const state = {
+      expenses: [],
+      filters: { category: 'all', from: '', to: '' }
+    };
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(storeKey);
+        if (raw) state.expenses = JSON.parse(raw);
+      } catch { state.expenses = []; }
+    }
+    function save() {
+      localStorage.setItem(storeKey, JSON.stringify(state.expenses));
+    }
+
+    function upsert(exp) {
+      const i = state.expenses.findIndex(e => e.id === exp.id);
+      if (i === -1) state.expenses.push(exp); else state.expenses[i] = exp;
+      save();
+    }
+    function remove(id) {
+      state.expenses = state.expenses.filter(e => e.id !== id);
+      save();
+    }
+
+    function applyFilters(list) {
+      const { category, from, to } = state.filters;
+      return list.filter(e => {
+        const okC = category === 'all' || e.category === category;
+        const okF = !from || e.date >= from;
+        const okT = !to || e.date <= to;
+        return okC && okF && okT;
+      }).sort((a,b) => (a.date < b.date ? 1 : -1));
+    }
+
+    function uniqueCategories() {
+      return [...new Set(state.expenses.map(e => e.category))].filter(Boolean).sort((a,b) => a.localeCompare(b));
+    }
+
+    /* ===== Rendering ===== */
+    function renderCategoryOptions() {
+      const select = $('#filter-category');
+      select.innerHTML = '';
+      const allOpt = document.createElement('option');
+      allOpt.value = 'all'; allOpt.textContent = 'All categories';
+      select.appendChild(allOpt);
+      for (const c of uniqueCategories()) {
+        const o = document.createElement('option'); o.value = c; o.textContent = c; select.appendChild(o);
+      }
+      select.value = state.filters.category;
+
+      const dl = $('#category-list');
+      dl.innerHTML = '';
+      uniqueCategories().forEach(c => { const o = document.createElement('option'); o.value = c; dl.appendChild(o); });
+    }
+
+    function renderTable() {
+      const tb = $('#tbody');
+      tb.innerHTML = '';
+      const list = applyFilters(state.expenses);
+      if (!list.length) {
+        tb.innerHTML = '<tr><td colspan="5" class="empty">No expenses match the current filters.</td></tr>';
+        $('#count').textContent = '0';
+        $('#sum-period').textContent = fmt.format(0);
+        return;
+      }
+
+      const tpl = $('#row-template');
+      let periodTotal = 0;
+      for (const e of list) {
+        const row = tpl.content.cloneNode(true);
+        row.querySelector('[data-key=date]').textContent = e.date;
+        row.querySelector('[data-key=amount]').textContent = fmt.format(e.amount);
+        row.querySelector('[data-key=category]').innerHTML = `<span class="pill">${e.category}</span>`;
+        row.querySelector('[data-key=description]').textContent = e.description || '';
+        row.querySelector('[data-action=edit]').addEventListener('click', () => startEdit(e.id));
+        row.querySelector('[data-action=delete]').addEventListener('click', () => doDelete(e.id));
+        tb.appendChild(row);
+        periodTotal += Number(e.amount) || 0;
+      }
+      $('#count').textContent = String(list.length);
+      $('#sum-period').textContent = fmt.format(periodTotal);
+    }
+
+    function renderStatsAllTime() {
+      const total = state.expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+      $('#sum-all').textContent = fmt.format(total);
+    }
+
+    function renderMonthlySummary() {
+      const box = $('#monthly');
+      box.innerHTML = '';
+      const map = new Map();
+      for (const e of state.expenses) {
+        const ym = e.date?.slice(0,7) || 'Unknown';
+        map.set(ym, (map.get(ym) || 0) + Number(e.amount || 0));
+      }
+      const entries = [...map.entries()].sort((a,b) => a[0] < b[0] ? 1 : -1);
+      for (const [month, sum] of entries) {
+        const div = document.createElement('div');
+        div.className = 'stat';
+        div.innerHTML = `<div class="label">${month}</div><div class="value">${fmt.format(sum)}</div>`;
+        box.appendChild(div);
+      }
+      if (!entries.length) box.innerHTML = '<div class="empty" style="grid-column: 1/-1;">No data yet.</div>';
+    }
+
+    function renderAll() {
+      renderCategoryOptions();
+      renderTable();
+      renderStatsAllTime();
+      renderMonthlySummary();
+    }
+
+    /* ===== Form actions ===== */
+    function startEdit(id) {
+      const e = state.expenses.find(x => x.id === id);
+      if (!e) return;
+      $('#expense-id').value = e.id;
+      $('#amount').value = e.amount;
+      $('#category').value = e.category;
+      $('#date').value = e.date;
+      $('#description').value = e.description || '';
+      $('#save-btn').textContent = 'Update Expense';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function clearForm() {
+      $('#expense-id').value = '';
+      $('#expense-form').reset();
+      $('#date').value = todayISO();
+      $('#save-btn').textContent = 'Save Expense';
+    }
+
+    function doDelete(id) {
+      if (!confirm('Delete this expense?')) return;
+      remove(id);
+      renderAll();
+    }
+
+    function toCSV(items) {
+      const headers = ['date','amount','category','description','id'];
+      const lines = [headers.join(',')];
+      for (const e of items) {
+        const row = [e.date, e.amount, wrapCSV(e.category), wrapCSV(e.description||''), e.id].join(',');
+        lines.push(row);
+      }
+      return lines.join('\n');
+    }
+    function wrapCSV(s){
+      if (s == null) return '';
+      const needQuotes = /[",\n]/.test(String(s));
+      let out = String(s).replaceAll('"','""');
+      return needQuotes ? `"${out}"` : out;
+    }
+
+    /* ===== Init & Events ===== */
+    document.addEventListener('DOMContentLoaded', () => {
+      load();
+      // Defaults
+      if (!state.expenses.length) $('#date').value = todayISO();
+      else $('#date').value = todayISO();
+
+      // Form submit
+      $('#expense-form').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const id = $('#expense-id').value || uid();
+        const amount = Number($('#amount').value);
+        const category = $('#category').value.trim();
+        const date = $('#date').value || todayISO();
+        const description = $('#description').value.trim();
+
+        if (!amount || amount < 0){ alert('Please enter a valid amount'); return; }
+        if (!category){ alert('Please enter a category'); return; }
+
+        upsert({ id, amount, category, date, description });
+        clearForm();
+        renderAll();
+      });
+
+      $('#reset-btn').addEventListener('click', clearForm);
+
+      // Filters
+      $('#apply-filters').addEventListener('click', () => {
+        state.filters.category = $('#filter-category').value || 'all';
+        state.filters.from = $('#from').value;
+        state.filters.to = $('#to').value;
+        renderAll();
+      });
+      $('#clear-filters').addEventListener('click', () => {
+        state.filters = { category: 'all', from: '', to: '' };
+        $('#filter-category').value = 'all';
+        $('#from').value = '';
+        $('#to').value = '';
+        renderAll();
+      });
+
+      // Export CSV
+      $('#export-csv').addEventListener('click', () => {
+        const list = applyFilters(state.expenses);
+        const blob = new Blob([toCSV(list)], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'expenses.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+
+      // Import JSON
+      $('#import-json').addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          if (!Array.isArray(data)) throw new Error('Invalid file: expected an array');
+          // Very light validation
+          const cleaned = data.map(x => ({
+            id: String(x.id || uid()),
+            amount: Number(x.amount) || 0,
+            category: String(x.category || '').slice(0,60),
+            date: (x.date || todayISO()).slice(0,10),
+            description: String(x.description || '').slice(0,160)
+          })).filter(x => x.amount > 0 && x.category);
+          state.expenses = cleaned;
+          save();
+          renderAll();
+          alert('Imported successfully');
+        } catch (err) {
+          console.error(err); alert('Failed to import JSON');
+        } finally {
+          e.target.value = '';
+        }
+      });
+
+      renderAll();
+    });
+  </script>
 </body>
 </html>
